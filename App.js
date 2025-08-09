@@ -1,20 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthProvider, useAuth } from './contexts/AuthProvider';
-import TabNavigator from './navigation/TabNavigator';
+import EmployeeTabNavigator from './navigation/EmployeeTabNavigator';
+import AdminTabNavigator from './navigation/AdminTabNavigator';
+import SuperAdminTabNavigator from './navigation/SuperAdminTabNavigator';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import { View, ActivityIndicator } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 
+function MainScreen() {
+  const { user, userRole } = useAuth();
+
+  // If user is authenticated but role not yet loaded, show a loader
+  if (user && !userRole) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#2196F3" />
+      </View>
+    );
+  }
+
+  // Render based on role
+  if (userRole === 'super_admin') return <SuperAdminTabNavigator />;
+  if (userRole === 'admin') return <AdminTabNavigator />;
+  if (userRole === 'employee') return <EmployeeTabNavigator />;
+
+  // Not logged in or role not matched
+  return null;
+}
+
 function RootNavigator() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Stop loading when:
+    // - logged out (user === null), or
+    // - logged in and role resolved (user && userRole !== null)
+    if (user === null || (user && userRole !== null)) {
+      setIsLoading(false);
+    }
+  }, [user, userRole]);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#2196F3" />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
-        <Stack.Screen name="Main" component={TabNavigator} />
+        <Stack.Screen name="Main" component={MainScreen} />
       ) : (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />

@@ -1,0 +1,29 @@
+import React from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+import SuperDashboardScreen from '../screens/SuperDashboard.js';
+import AttendanceScreen from '../screens/AttendanceScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+
+const Tab = createBottomTabNavigator();
+
+export default function SuperAdminTabNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+          if (route.name === 'SuperDashboard') iconName = 'home';
+          else if (route.name === 'Capture') iconName = 'camera';
+          else if (route.name === 'Profile') iconName = 'person';
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="SuperDashboard" component={SuperDashboardScreen} />
+      <Tab.Screen name="Capture" component={AttendanceScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}

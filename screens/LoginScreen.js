@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  Keyboard, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Keyboard,
   TouchableWithoutFeedback,
   Dimensions,
-  StatusBar
+  StatusBar,
 } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,8 +28,35 @@ export default function LoginScreen({ navigation }) {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
+      console.log('Authenticated user UID:', user.uid); // Debug: Log UID
+
+      // Check user's active status in Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (!userDoc.exists()) {
+        console.log('No user document found for UID:', user.uid); // Debug: Log missing doc
+        await signOut(auth);
+        Alert.alert('Error', 'User data not found. Please register again.');
+        return;
+      }
+
+      const userData = userDoc.data();
+      console.log('User data:', userData); // Debug: Log user data
+
+      // Check active status for all roles
+      if (!userData.active) {
+        await signOut(auth);
+        Alert.alert(
+          'Access Denied',
+          `Your account (${userData.role}) is not yet approved. Please contact an admin.`
+        );
+        return;
+      }
+
+      // The AuthProvider will handle navigation automatically
+      // navigation.replace('Main', { userRole: userData.role });
     } catch (error) {
+      console.error('Login error:', error); // Debug: Log error
       Alert.alert('Login Failed', error.message);
     }
   };
@@ -41,7 +69,7 @@ export default function LoginScreen({ navigation }) {
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logoText}>
